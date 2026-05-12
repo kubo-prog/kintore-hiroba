@@ -5,8 +5,14 @@ let memo1 = Array(20).fill("");
 let memo2 = Array(20).fill("");
 let attended = Array(20).fill(false);
 let recordDate = new Date().toISOString().split("T")[0];
+const STORAGE_KEY = "kintore_names_v1";
 
 async function loadNames() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+
+if (saved) {
+  names = JSON.parse(saved);
+}
   try {
     const res = await fetch(`${SCRIPT_URL}?action=getNames`);
     const data = await res.json();
@@ -22,6 +28,7 @@ async function loadNames() {
 }
 
 async function saveNames() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
   await fetch(SCRIPT_URL, {
     method: "POST",
     mode: "no-cors",
