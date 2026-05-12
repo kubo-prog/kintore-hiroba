@@ -75,13 +75,13 @@ function updateCount() {
   document.getElementById("count").textContent = count;
 }
 
-function saveData() {
-  const date = document.getElementById("date").value;
-  const allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  const records = [];
+async function saveData() {
+
+  const rows = [];
 
   for (let i = 1; i <= 20; i++) {
-    records.push({
+
+    rows.push({
       no: i,
       name: document.getElementById("name" + i).value,
       present: document.getElementById("present" + i).checked,
@@ -90,9 +90,18 @@ function saveData() {
     });
   }
 
-  allData[date] = records;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-  alert("保存しました");
+  const payload = {
+    date: document.getElementById("date").value,
+    records: rows
+  };
+
+  await fetch("https://script.google.com/macros/s/AKfycbzxPubkUojVbKnZG4jnMrPGolnHD_wUzkdcQHqODRScf2Sh3muLd3oRwBSGLmR0Xpv-/exec", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+
+  alert("Googleスプレッドシートへ保存しました");
+}
 }
 
 function loadData() {
