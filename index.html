@@ -1,141 +1,174 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>筋トレ広場 出席管理</title>
-<style>
-body{font-family:sans-serif;background:#f8fafc;padding:20px;}
-.box{background:white;padding:15px;border-radius:10px;margin-bottom:15px;}
-table{width:100%;border-collapse:collapse;background:white;}
-th,td{border:1px solid #ccc;padding:8px;text-align:center;}
-th{background:#e5e7eb;}
-input[type="text"],input[type="date"]{padding:6px;width:90%;}
-button{padding:8px 12px;margin:4px;cursor:pointer;}
-</style>
-</head>
-<body>
+import React, { useEffect, useState } from "react";
 
-<h1>筋トレ広場 出席管理</h1>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzb2f-Sh_aMDH9WwB10QEPIYB-PH7Shv94UL7fIi0yPs-IDqtpqvO8CGP-fYrHmtrmp/exec";
 
-<div class="box">
-  日付：<input type="date" id="date">
-  <button onclick="saveData()">保存</button>
-  <button onclick="downloadCSV()">CSV出力</button>
-</div>
+export default function App() {
+  const [names, setNames] = useState(Array(20).fill(""));
+  const [memo1, setMemo1] = useState({});
+  const [memo2, setMemo2] = useState({});
+  const [saving, setSaving] = useState(false);
 
-<div class="box">
-  <strong>出席人数：</strong><span id="count">0</span> / 20 人
-</div>
+  useEffect(() => {
+    loadNames();
+  }, []);
 
-<table>
-<thead>
-<tr>
-  <th>No</th>
-  <th>氏名</th>
-  <th>出席</th>
-  <th>数値</th>
-  <th>備考</th>
-</tr>
-</thead>
-<tbody id="tableBody"></tbody>
-</table>
+  const loadNames = async () => {
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=getNames`);
+      const data = await res.json();
 
-<script>
-const SCRIPT_URL = "https://kintore-hiroba.vercel.app/";
-const NAME_KEY = "kintore_hiroba_name_";
-
-document.getElementById("date").value = new Date().toISOString().split("T")[0];
-
-function makeTable(){
-  const tbody = document.getElementById("tableBody");
-  tbody.innerHTML = "";
-
-  for(let i=1; i<=20; i++){
-    const savedName = localStorage.getItem(NAME_KEY + i) || "参加者" + i;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i}</td>
-      <td>
-        <input type="text" id="name${i}" value="${savedName}" onchange="saveName(${i}, this.value)">
-      </td>
-      <td>
-        <input type="checkbox" id="present${i}" onchange="updateCount()">
-      </td>
-      <td>
-        <input type="text" id="number${i}" placeholder="例:20,30,40">
-      </td>
-      <td>
-        <input type="text" id="note${i}" placeholder="備考">
-      </td>
-    `;
-    tbody.appendChild(tr);
-  }
-}
-
-function saveName(i, value){
-  localStorage.setItem(NAME_KEY + i, value);
-}
-
-function updateCount(){
-  let count = 0;
-  for(let i=1; i<=20; i++){
-    if(document.getElementById("present"+i).checked) count++;
-  }
-  document.getElementById("count").textContent = count;
-}
-
-async function saveData(){
-  const rows = [];
-
-  for(let i=1; i<=20; i++){
-    const name = document.getElementById("name"+i).value;
-    saveName(i, name);
-
-    rows.push({
-      no: i,
-      name: name,
-      present: document.getElementById("present"+i).checked,
-      number: document.getElementById("number"+i).value,
-      note: document.getElementById("note"+i).value
-    });
-  }
-
-  const payload = {
-    date: document.getElementById("date").value,
-    records: rows
+      if (data.names && data.names.length > 0) {
+        const loaded = [...data.names];
+        while (loaded.length < 20) loaded.push("");
+        setNames(loaded.slice(0, 20));
+      }
+    } catch (error) {
+      alert("名前の読み込みに失敗しました。");
+      console.error(error);
+    }
   };
 
-  await fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
+  const saveNames = async (updatedNames) => {
+    try {
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "saveNames",
+          names: updatedNames,
+        }),
+      });
+    } catch (error) {
+      alert("名前の保存に失敗しました。");
+      console.error(error);
+    }
+  };
 
-  alert("Googleスプレッドシートへ保存しました");
+  const changeName = (index, value) => {
+    const updated = [...names];
+    updated[index] = value;
+    setNames(updated);
+  };
+
+  const handleNameBlur = () => {
+    saveNames(names);
+  };
+
+  const saveAttendance = async (index) => {
+    const name = names[index];
+
+    if (!name.trim()) {
+      alert("名前を入力してください。");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "saveRecord",
+          name,
+          attendance: "出席",
+          memo1: memo1[index] || "",
+          memo2: memo2[index] || "",
+        }),
+      });
+
+      alert(`${name} さんの出席を記録しました。`);
+
+      setMemo1({ ...memo1, [index]: "" });
+      setMemo2({ ...memo2, [index]: "" });
+    } catch (error) {
+      alert("記録に失敗しました。");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
+      <h1>筋トレ広場 出席管理</h1>
+
+      <p>
+        名前は自動的に保存されます。出席ボタンを押すと、Googleスプレッドシートに記録されます。
+      </p>
+
+      {names.map((name, index) => (
+        <div
+          key={index}
+          style={{
+            border: "1px solid #ccc",
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 12,
+          }}
+        >
+          <div style={{ marginBottom: 8 }}>
+            <strong>{index + 1}.</strong>{" "}
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => changeName(index, e.target.value)}
+              onBlur={handleNameBlur}
+              placeholder="名前"
+              style={{
+                padding: 8,
+                width: "70%",
+                fontSize: 16,
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 8 }}>
+            <input
+              type="text"
+              value={memo1[index] || ""}
+              onChange={(e) =>
+                setMemo1({ ...memo1, [index]: e.target.value })
+              }
+              placeholder="備考1"
+              style={{
+                padding: 8,
+                width: "100%",
+                fontSize: 15,
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 8 }}>
+            <input
+              type="text"
+              value={memo2[index] || ""}
+              onChange={(e) =>
+                setMemo2({ ...memo2, [index]: e.target.value })
+              }
+              placeholder="備考2"
+              style={{
+                padding: 8,
+                width: "100%",
+                fontSize: 15,
+              }}
+            />
+          </div>
+
+          <button
+            onClick={() => saveAttendance(index)}
+            disabled={saving}
+            style={{
+              padding: "10px 20px",
+              fontSize: 16,
+              backgroundColor: "#1976d2",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+            }}
+          >
+            出席を記録
+          </button>
+        </div>
+      ))}
+    </div>
+  );
 }
-
-function downloadCSV(){
-  const date = document.getElementById("date").value;
-  let csv = "日付,No,氏名,出席,数値,備考\n";
-
-  for(let i=1; i<=20; i++){
-    const name = document.getElementById("name"+i).value;
-    const present = document.getElementById("present"+i).checked ? "出席" : "欠席";
-    const number = document.getElementById("number"+i).value;
-    const note = document.getElementById("note"+i).value;
-    csv += `${date},${i},${name},${present},${number},${note}\n`;
-  }
-
-  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "筋トレ広場_出席記録_"+date+".csv";
-  link.click();
-}
-
-makeTable();
-</script>
-
-</body>
-</html>
