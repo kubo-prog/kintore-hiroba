@@ -4,12 +4,12 @@ let names = Array(20).fill("");
 let memo1 = Array(20).fill("");
 let memo2 = Array(20).fill("");
 let attended = Array(20).fill(false);
-let selectedIndex = 0;
 
 async function loadNames() {
   try {
     const res = await fetch(`${SCRIPT_URL}?action=getNames`);
     const data = await res.json();
+
     if (data.names && data.names.length > 0) {
       names = [...data.names];
       while (names.length < 20) names.push("");
@@ -31,8 +31,8 @@ async function saveNames() {
   });
 }
 
-async function saveAttendance() {
-  const name = names[selectedIndex];
+async function saveAttendance(index) {
+  const name = names[index];
 
   if (!name || !name.trim()) {
     alert("名前を入力してください。");
@@ -46,14 +46,14 @@ async function saveAttendance() {
       action: "saveRecord",
       name: name,
       attendance: "出席",
-      memo1: memo1[selectedIndex],
-      memo2: memo2[selectedIndex]
+      memo1: memo1[index],
+      memo2: memo2[index]
     })
   });
 
-  attended[selectedIndex] = true;
-  memo1[selectedIndex] = "";
-  memo2[selectedIndex] = "";
+  attended[index] = true;
+  memo1[index] = "";
+  memo2[index] = "";
   renderApp();
 
   alert(`${name} さんの出席を記録しました。`);
@@ -77,13 +77,11 @@ function downloadCSV() {
 
 function renderApp() {
   const count = attended.filter(Boolean).length;
-  const selectedName = names[selectedIndex] || "";
-
   const app = document.getElementById("app");
 
   app.innerHTML = `
     <div style="font-family:sans-serif;background:#f5f7fb;min-height:100vh;padding:16px;">
-      <div style="max-width:1000px;margin:0 auto;">
+      <div style="max-width:1100px;margin:0 auto;">
         <div style="background:#1976d2;color:white;padding:18px;border-radius:14px;margin-bottom:14px;">
           <h1 style="margin:0;font-size:26px;">筋トレ広場 出席管理</h1>
           <p style="margin:8px 0 0;">本日の出席：${count} / 20人</p>
@@ -93,43 +91,19 @@ function renderApp() {
           CSV出力
         </button>
 
-        <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start;">
-          <div style="background:white;border-radius:14px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-            <h2 style="font-size:18px;margin:0 0 10px;">参加者一覧</h2>
-            <div id="nameList"></div>
-          </div>
-
-          <div style="background:white;border-radius:14px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-            <h2 style="font-size:22px;margin:0 0 14px;">
-              ${selectedIndex + 1}人目 ${attended[selectedIndex] ? "✅ 出席済み" : ""}
-            </h2>
-
-            <label style="font-weight:bold;">名前</label>
-            <input id="nameInput"
-              value="${selectedName}"
-              placeholder="名前"
-              style="width:100%;box-sizing:border-box;padding:12px;font-size:18px;margin:6px 0 14px;border-radius:8px;border:1px solid #ccc;"
-            >
-
-            <label style="font-weight:bold;">備考1（数値：例 10,20,30）</label>
-            <input id="memo1Input"
-              value="${memo1[selectedIndex] || ""}"
-              placeholder="例 10,20,30"
-              inputmode="decimal"
-              style="width:100%;box-sizing:border-box;padding:12px;font-size:18px;margin:6px 0 14px;border-radius:8px;border:1px solid #ccc;"
-            >
-
-            <label style="font-weight:bold;">備考2</label>
-            <input id="memo2Input"
-              value="${memo2[selectedIndex] || ""}"
-              placeholder="備考2"
-              style="width:100%;box-sizing:border-box;padding:12px;font-size:18px;margin:6px 0 18px;border-radius:8px;border:1px solid #ccc;"
-            >
-
-            <button id="attendBtn" style="width:100%;padding:16px;font-size:18px;background:#1976d2;color:white;border:none;border-radius:10px;">
-              出席を記録
-            </button>
-          </div>
+        <div style="overflow-x:auto;background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:10px;">
+          <table style="width:100%;border-collapse:collapse;min-width:760px;">
+            <thead>
+              <tr style="background:#eeeeee;">
+                <th style="padding:10px;border:1px solid #ddd;width:50px;">No.</th>
+                <th style="padding:10px;border:1px solid #ddd;width:260px;">名前</th>
+                <th style="padding:10px;border:1px solid #ddd;">備考1 数値</th>
+                <th style="padding:10px;border:1px solid #ddd;">備考2</th>
+                <th style="padding:10px;border:1px solid #ddd;width:150px;">出席</th>
+              </tr>
+            </thead>
+            <tbody id="memberRows"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -137,43 +111,70 @@ function renderApp() {
 
   document.getElementById("csvBtn").addEventListener("click", downloadCSV);
 
-  const nameList = document.getElementById("nameList");
+  const tbody = document.getElementById("memberRows");
 
   for (let i = 0; i < 20; i++) {
-    const item = document.createElement("button");
-    item.textContent = `${i + 1}. ${names[i] || "名前未入力"} ${attended[i] ? "✅" : ""}`;
-    item.style.width = "100%";
-    item.style.textAlign = "left";
-    item.style.padding = "10px";
-    item.style.marginBottom = "6px";
-    item.style.borderRadius = "8px";
-    item.style.border = i === selectedIndex ? "2px solid #1976d2" : "1px solid #ddd";
-    item.style.background = attended[i] ? "#e8f5e9" : (i === selectedIndex ? "#e3f2fd" : "#fff");
-    item.style.fontSize = "15px";
+    const tr = document.createElement("tr");
+    tr.style.background = attended[i] ? "#e8f5e9" : "white";
 
-    item.addEventListener("click", () => {
-      selectedIndex = i;
-      renderApp();
+    tr.innerHTML = `
+      <td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;">
+        ${i + 1}
+      </td>
+
+      <td style="padding:8px;border:1px solid #ddd;">
+        <input 
+          value="${names[i] || ""}" 
+          placeholder="名前"
+          style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;border-radius:6px;border:1px solid #ccc;"
+        >
+      </td>
+
+      <td style="padding:8px;border:1px solid #ddd;">
+        <input 
+          value="${memo1[i] || ""}" 
+          placeholder="例 10,20,30"
+          inputmode="decimal"
+          style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;border-radius:6px;border:1px solid #ccc;"
+        >
+      </td>
+
+      <td style="padding:8px;border:1px solid #ddd;">
+        <input 
+          value="${memo2[i] || ""}" 
+          placeholder="備考2"
+          style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;border-radius:6px;border:1px solid #ccc;"
+        >
+      </td>
+
+      <td style="padding:8px;border:1px solid #ddd;text-align:center;">
+        <button style="padding:10px 16px;font-size:15px;background:${attended[i] ? "#2e7d32" : "#1976d2"};color:white;border:none;border-radius:8px;">
+          ${attended[i] ? "出席済み" : "出席"}
+        </button>
+      </td>
+    `;
+
+    const inputs = tr.querySelectorAll("input");
+    const button = tr.querySelector("button");
+
+    inputs[0].addEventListener("input", (e) => {
+      names[i] = e.target.value;
     });
 
-    nameList.appendChild(item);
+    inputs[0].addEventListener("blur", saveNames);
+
+    inputs[1].addEventListener("input", (e) => {
+      memo1[i] = e.target.value.replace(/，/g, ",");
+    });
+
+    inputs[2].addEventListener("input", (e) => {
+      memo2[i] = e.target.value;
+    });
+
+    button.addEventListener("click", () => saveAttendance(i));
+
+    tbody.appendChild(tr);
   }
-
-  document.getElementById("nameInput").addEventListener("input", (e) => {
-    names[selectedIndex] = e.target.value;
-  });
-
-  document.getElementById("nameInput").addEventListener("blur", saveNames);
-
-  document.getElementById("memo1Input").addEventListener("input", (e) => {
-    memo1[selectedIndex] = e.target.value.replace(/，/g, ",");
-  });
-
-  document.getElementById("memo2Input").addEventListener("input", (e) => {
-    memo2[selectedIndex] = e.target.value;
-  });
-
-  document.getElementById("attendBtn").addEventListener("click", saveAttendance);
 }
 
 async function startApp() {
