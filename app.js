@@ -91,7 +91,17 @@ function renderApp() {
           <p style="margin:8px 0 0;">本日の出席：${count} / 20人</p>
         </div>
 
-        <div style="overflow-x:auto;background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:10px;">
+        <div style="margin-bottom:12px;">
+  <button id="csvBtn"
+    style="padding:10px 16px;
+    background:#555;
+    color:white;
+    border:none;
+    border-radius:8px;
+    font-size:15px;">
+    CSV出力
+  </button>
+</div>border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:10px;">
           <table style="width:100%;border-collapse:collapse;min-width:850px;">
             <thead>
               <tr style="background:#eeeeee;">
@@ -113,7 +123,31 @@ function renderApp() {
     recordDate = e.target.value;
   });
 
-  const tbody = document.getElementById("memberRows");
+  document.getElementById("csvBtn").addEventListener("click", () => {
+
+  let csv = "日付,名前,備考1,備考2,出席\n";
+
+  for (let i = 0; i < 20; i++) {
+
+    csv += `${recordDate},"${names[i]}","${memo1[i]}","${memo2[i]}","${attended[i] ? "出席" : ""}"\n`;
+
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+
+  a.download = `kintore_${recordDate}.csv`;
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+});
 
   for (let i = 0; i < 20; i++) {
     const tr = document.createElement("tr");
