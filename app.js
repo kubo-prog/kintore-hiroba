@@ -5,14 +5,8 @@ let memo1 = Array(20).fill("");
 let memo2 = Array(20).fill("");
 let attended = Array(20).fill(false);
 let recordDate = new Date().toISOString().split("T")[0];
-const STORAGE_KEY = "kintore_names_v1";
 
 async function loadNames() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-
-if (saved) {
-  names = JSON.parse(saved);
-}
   try {
     const res = await fetch(`${SCRIPT_URL}?action=getNames`);
     const data = await res.json();
@@ -28,7 +22,8 @@ if (saved) {
 }
 
 async function saveNames() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
+  localStorage.setItem("kintore_names_v1", JSON.stringify(names));
+
   await fetch(SCRIPT_URL, {
     method: "POST",
     mode: "no-cors",
@@ -68,6 +63,22 @@ async function saveAttendance(index) {
   alert(`${name} さんの出席を記録しました。`);
 }
 
+function downloadCSV() {
+  let csv = "\uFEFF日付,No,名前,備考1,備考2,出席\n";
+
+  for (let i = 0; i < 20; i++) {
+    csv += `${recordDate},${i + 1},"${names[i]}","${memo1[i]}","${memo2[i]}","${attended[i] ? "出席" : ""}"\n`;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `kintore_${recordDate}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function renderApp() {
   const count = attended.filter(Boolean).length;
   const app = document.getElementById("app");
@@ -92,16 +103,12 @@ function renderApp() {
         </div>
 
         <div style="margin-bottom:12px;">
-  <button id="csvBtn"
-    style="padding:10px 16px;
-    background:#555;
-    color:white;
-    border:none;
-    border-radius:8px;
-    font-size:15px;">
-    CSV出力
-  </button>
-</div>border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:10px;">
+          <button id="csvBtn" style="padding:10px 16px;background:#555;color:white;border:none;border-radius:8px;font-size:15px;">
+            CSV出力
+          </button>
+        </div>
+
+        <div style="overflow-x:auto;background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:10px;">
           <table style="width:100%;border-collapse:collapse;min-width:850px;">
             <thead>
               <tr style="background:#eeeeee;">
@@ -123,31 +130,9 @@ function renderApp() {
     recordDate = e.target.value;
   });
 
-  document.getElementById("csvBtn").addEventListener("click", () => {
+  document.getElementById("csvBtn").addEventListener("click", downloadCSV);
 
-  let csv = "日付,名前,備考1,備考2,出席\n";
-
-  for (let i = 0; i < 20; i++) {
-
-    csv += `${recordDate},"${names[i]}","${memo1[i]}","${memo2[i]}","${attended[i] ? "出席" : ""}"\n`;
-
-  }
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-
-  a.href = url;
-
-  a.download = `kintore_${recordDate}.csv`;
-
-  a.click();
-
-  URL.revokeObjectURL(url);
-
-});
+  const tbody = document.getElementById("memberRows");
 
   for (let i = 0; i < 20; i++) {
     const tr = document.createElement("tr");
@@ -193,6 +178,7 @@ function renderApp() {
 
     inputs[0].addEventListener("input", (e) => {
       names[i] = e.target.value;
+      localStorage.setItem("kintore_names_v1", JSON.stringify(names));
     });
 
     inputs[0].addEventListener("blur", saveNames);
@@ -212,6 +198,11 @@ function renderApp() {
 }
 
 async function startApp() {
+  const saved = localStorage.getItem("kintore_names_v1");
+  if (saved) {
+    names = JSON.parse(saved);
+  }
+
   await loadNames();
   renderApp();
 }
