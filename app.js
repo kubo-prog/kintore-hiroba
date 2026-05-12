@@ -23,6 +23,7 @@ async function saveNames() {
   try {
     await fetch(SCRIPT_URL, {
       method: "POST",
+      mode: "no-cors",
       body: JSON.stringify({
         action: "saveNames",
         names: names
@@ -45,6 +46,7 @@ async function saveAttendance(index) {
   try {
     await fetch(SCRIPT_URL, {
       method: "POST",
+      mode: "no-cors",
       body: JSON.stringify({
         action: "saveRecord",
         name: name,
@@ -95,7 +97,8 @@ function renderApp() {
       >
       <input 
         value="${memo1[i] || ""}" 
-        placeholder="備考1"
+        placeholder="備考1：例 10,20,30"
+        inputmode="decimal"
         style="width:100%;padding:8px;font-size:15px;margin-bottom:6px;"
       >
       <input 
@@ -118,7 +121,7 @@ function renderApp() {
     inputs[0].addEventListener("blur", saveNames);
 
     inputs[1].addEventListener("input", (e) => {
-      memo1[i] = e.target.value;
+      memo1[i] = e.target.value.replace(/，/g, ",");
     });
 
     inputs[2].addEventListener("input", (e) => {
