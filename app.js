@@ -1,9 +1,15 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfyczbz2f-Sh_aMDH9WwB1OQEPIYB-PH7Shv94UL7fIi0yPs-IDqtpqvO8CGP-fYrHmtrmp/exec";
 
 let names = Array(20).fill("");
+let dates = Array(20).fill("");
 let memo1 = Array(20).fill("");
 let memo2 = Array(20).fill("");
 let attended = Array(20).fill(false);
+
+function todayText() {
+  const d = new Date();
+  return d.toLocaleDateString("ja-JP");
+}
 
 async function loadNames() {
   try {
@@ -18,6 +24,8 @@ async function loadNames() {
   } catch (e) {
     console.log(e);
   }
+
+  dates = Array(20).fill(todayText());
 }
 
 async function saveNames() {
@@ -44,6 +52,7 @@ async function saveAttendance(index) {
     mode: "no-cors",
     body: JSON.stringify({
       action: "saveRecord",
+      date: dates[index],
       name: name,
       attendance: "出席",
       memo1: memo1[index],
@@ -59,47 +68,28 @@ async function saveAttendance(index) {
   alert(`${name} さんの出席を記録しました。`);
 }
 
-function downloadCSV() {
-  let csv = "番号,名前,出席,備考1,備考2\n";
-
-  for (let i = 0; i < 20; i++) {
-    csv += `${i + 1},"${names[i]}","${attended[i] ? "出席" : ""}","${memo1[i]}","${memo2[i]}"\n`;
-  }
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "kintore-hiroba.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 function renderApp() {
   const count = attended.filter(Boolean).length;
   const app = document.getElementById("app");
 
   app.innerHTML = `
     <div style="font-family:sans-serif;background:#f5f7fb;min-height:100vh;padding:16px;">
-      <div style="max-width:1100px;margin:0 auto;">
+      <div style="max-width:1200px;margin:0 auto;">
         <div style="background:#1976d2;color:white;padding:18px;border-radius:14px;margin-bottom:14px;">
           <h1 style="margin:0;font-size:26px;">筋トレ広場 出席管理</h1>
           <p style="margin:8px 0 0;">本日の出席：${count} / 20人</p>
         </div>
 
-        <button id="csvBtn" style="padding:10px 16px;background:#555;color:white;border:none;border-radius:8px;font-size:15px;margin-bottom:14px;">
-          CSV出力
-        </button>
-
         <div style="overflow-x:auto;background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:10px;">
-          <table style="width:100%;border-collapse:collapse;min-width:760px;">
+          <table style="width:100%;border-collapse:collapse;min-width:900px;">
             <thead>
               <tr style="background:#eeeeee;">
                 <th style="padding:10px;border:1px solid #ddd;width:50px;">No.</th>
-                <th style="padding:10px;border:1px solid #ddd;width:260px;">名前</th>
+                <th style="padding:10px;border:1px solid #ddd;width:140px;">日付</th>
+                <th style="padding:10px;border:1px solid #ddd;width:220px;">名前</th>
                 <th style="padding:10px;border:1px solid #ddd;">備考1 数値</th>
                 <th style="padding:10px;border:1px solid #ddd;">備考2</th>
-                <th style="padding:10px;border:1px solid #ddd;width:150px;">出席</th>
+                <th style="padding:10px;border:1px solid #ddd;width:130px;">出席</th>
               </tr>
             </thead>
             <tbody id="memberRows"></tbody>
@@ -109,8 +99,6 @@ function renderApp() {
     </div>
   `;
 
-  document.getElementById("csvBtn").addEventListener("click", downloadCSV);
-
   const tbody = document.getElementById("memberRows");
 
   for (let i = 0; i < 20; i++) {
@@ -118,15 +106,20 @@ function renderApp() {
     tr.style.background = attended[i] ? "#e8f5e9" : "white";
 
     tr.innerHTML = `
-      <td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;">
-        ${i + 1}
+      <td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;">${i + 1}</td>
+
+      <td style="padding:8px;border:1px solid #ddd;">
+        <input 
+          value="${dates[i] || todayText()}" 
+          style="width:100%;box-sizing:border-box;padding:9px;font-size:15px;border-radius:6px;border:1px solid #ccc;"
+        >
       </td>
 
       <td style="padding:8px;border:1px solid #ddd;">
         <input 
           value="${names[i] || ""}" 
           placeholder="名前"
-          style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;border-radius:6px;border:1px solid #ccc;"
+          style="width:100%;box-sizing:border-box;padding:9px;font-size:15px;border-radius:6px;border:1px solid #ccc;"
         >
       </td>
 
@@ -135,7 +128,7 @@ function renderApp() {
           value="${memo1[i] || ""}" 
           placeholder="例 10,20,30"
           inputmode="decimal"
-          style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;border-radius:6px;border:1px solid #ccc;"
+          style="width:100%;box-sizing:border-box;padding:9px;font-size:15px;border-radius:6px;border:1px solid #ccc;"
         >
       </td>
 
@@ -143,7 +136,7 @@ function renderApp() {
         <input 
           value="${memo2[i] || ""}" 
           placeholder="備考2"
-          style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;border-radius:6px;border:1px solid #ccc;"
+          style="width:100%;box-sizing:border-box;padding:9px;font-size:15px;border-radius:6px;border:1px solid #ccc;"
         >
       </td>
 
@@ -158,16 +151,20 @@ function renderApp() {
     const button = tr.querySelector("button");
 
     inputs[0].addEventListener("input", (e) => {
+      dates[i] = e.target.value;
+    });
+
+    inputs[1].addEventListener("input", (e) => {
       names[i] = e.target.value;
     });
 
-    inputs[0].addEventListener("blur", saveNames);
+    inputs[1].addEventListener("blur", saveNames);
 
-    inputs[1].addEventListener("input", (e) => {
+    inputs[2].addEventListener("input", (e) => {
       memo1[i] = e.target.value.replace(/，/g, ",");
     });
 
-    inputs[2].addEventListener("input", (e) => {
+    inputs[3].addEventListener("input", (e) => {
       memo2[i] = e.target.value;
     });
 
