@@ -4,12 +4,6 @@ let names = Array(20).fill("");
 let memo1 = Array(20).fill("");
 let memo2 = Array(20).fill("");
 let attended = Array(20).fill(false);
-
-function todayText() {
-  const d = new Date();
-  return d.toLocaleDateString("ja-JP");
-}
-
 let recordDate = new Date().toISOString().split("T")[0];
 
 async function loadNames() {
@@ -73,23 +67,25 @@ function renderApp() {
 
   app.innerHTML = `
     <div style="font-family:sans-serif;background:#f5f7fb;min-height:100vh;padding:16px;">
-      <div style="max-width:1100px;margin:0 auto;">
+      <div style="max-width:1200px;margin:0 auto;">
         <div style="background:#1976d2;color:white;padding:18px;border-radius:14px;margin-bottom:14px;">
           <h1 style="margin:0;font-size:26px;">筋トレ広場 出席管理</h1>
-          <div style="margin:8px 0 0;">
-  日付：
-  <input 
-    type="date"
-    id="dateInput"
-    value="${recordDate}"
-    style="padding:6px;font-size:16px;border-radius:6px;border:none;margin-left:8px;"
-  >
-</div>
-          <p style="margin:4px 0 0;">本日の出席：${count} / 20人</p>
+
+          <div style="margin-top:10px;">
+            日付：
+            <input 
+              type="date"
+              id="dateInput"
+              value="${recordDate}"
+              style="padding:6px;font-size:16px;border-radius:6px;border:none;margin-left:8px;"
+            >
+          </div>
+
+          <p style="margin:8px 0 0;">本日の出席：${count} / 20人</p>
         </div>
 
         <div style="overflow-x:auto;background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:10px;">
-          <table style="width:100%;border-collapse:collapse;min-width:780px;">
+          <table style="width:100%;border-collapse:collapse;min-width:850px;">
             <thead>
               <tr style="background:#eeeeee;">
                 <th style="padding:10px;border:1px solid #ddd;width:50px;">No.</th>
@@ -107,8 +103,10 @@ function renderApp() {
   `;
 
   document.getElementById("dateInput").addEventListener("input", (e) => {
-  recordDate = e.target.value;
-});
+    recordDate = e.target.value;
+  });
+
+  const tbody = document.getElementById("memberRows");
 
   for (let i = 0; i < 20; i++) {
     const tr = document.createElement("tr");
