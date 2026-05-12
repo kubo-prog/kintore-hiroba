@@ -60,7 +60,7 @@ function makeTable() {
       <td>${i}</td>
       <td><input type="text" id="name${i}" value="参加者${i}"></td>
       <td><input type="checkbox" id="present${i}" onchange="updateCount()"></td>
-      <td><input type="number" id="number${i}" placeholder="数値"></td>
+      <input type="text" id="number${i}" placeholder="例：20, 30, 40">
       <td><input type="text" id="note${i}" placeholder="備考"></td>
     `;
     tbody.appendChild(tr);
