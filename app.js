@@ -3,12 +3,12 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfyczbz2f-Sh_aMDH9WwB1OQ
 let names = Array(20).fill("");
 let memo1 = Array(20).fill("");
 let memo2 = Array(20).fill("");
+let attended = Array(20).fill(false);
 
 async function loadNames() {
   try {
     const res = await fetch(`${SCRIPT_URL}?action=getNames`);
     const data = await res.json();
-
     if (data.names && data.names.length > 0) {
       names = [...data.names];
       while (names.length < 20) names.push("");
@@ -20,19 +20,14 @@ async function loadNames() {
 }
 
 async function saveNames() {
-  try {
-    await fetch(SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({
-        action: "saveNames",
-        names: names
-      })
-    });
-  } catch (e) {
-    alert("名前の保存に失敗しました。");
-    console.log(e);
-  }
+  await fetch(SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({
+      action: "saveNames",
+      names: names
+    })
+  });
 }
 
 async function saveAttendance(index) {
@@ -43,70 +38,101 @@ async function saveAttendance(index) {
     return;
   }
 
-  try {
-    await fetch(SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({
-        action: "saveRecord",
-        name: name,
-        attendance: "出席",
-        memo1: memo1[index],
-        memo2: memo2[index]
-      })
-    });
+  await fetch(SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({
+      action: "saveRecord",
+      name: name,
+      attendance: "出席",
+      memo1: memo1[index],
+      memo2: memo2[index]
+    })
+  });
 
-    alert(`${name} さんの出席を記録しました。`);
+  attended[index] = true;
+  memo1[index] = "";
+  memo2[index] = "";
+  renderApp();
 
-    memo1[index] = "";
-    memo2[index] = "";
-    renderApp();
-  } catch (e) {
-    alert("記録に失敗しました。");
-    console.log(e);
+  alert(`${name} さんの出席を記録しました。`);
+}
+
+function downloadCSV() {
+  let csv = "番号,名前,出席,備考1,備考2\n";
+
+  for (let i = 0; i < 20; i++) {
+    csv += `${i + 1},"${names[i]}","${attended[i] ? "出席" : ""}","${memo1[i]}","${memo2[i]}"\n`;
   }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "kintore-hiroba.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function renderApp() {
+  const count = attended.filter(Boolean).length;
   const app = document.getElementById("app");
 
   app.innerHTML = `
-    <div style="max-width:900px;margin:20px auto;font-family:sans-serif;padding:16px;">
-      <h1>筋トレ広場 出席管理</h1>
-      <p>名前は自動保存されます。出席ボタンを押すとGoogleスプレッドシートに記録されます。</p>
-      <div id="memberList"></div>
+    <div style="max-width:1000px;margin:0 auto;font-family:sans-serif;padding:18px;background:#f5f7fb;min-height:100vh;">
+      <div style="background:#1976d2;color:white;padding:18px;border-radius:14px;margin-bottom:16px;">
+        <h1 style="margin:0;font-size:28px;">筋トレ広場 出席管理</h1>
+        <p style="margin:8px 0 0;">本日の出席：${count} / 20人</p>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <button id="csvBtn" style="padding:10px 16px;background:#555;color:white;border:none;border-radius:8px;font-size:15px;">
+          CSV出力
+        </button>
+      </div>
+
+      <div id="memberList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;"></div>
     </div>
   `;
+
+  document.getElementById("csvBtn").addEventListener("click", downloadCSV);
 
   const list = document.getElementById("memberList");
 
   for (let i = 0; i < 20; i++) {
     const row = document.createElement("div");
-    row.style.border = "1px solid #ddd";
-    row.style.borderRadius = "8px";
-    row.style.padding = "12px";
-    row.style.marginBottom = "12px";
-    row.style.background = "#fafafa";
+
+    row.style.border = attended[i] ? "2px solid #2e7d32" : "1px solid #ddd";
+    row.style.borderRadius = "14px";
+    row.style.padding = "14px";
+    row.style.background = attended[i] ? "#e8f5e9" : "white";
+    row.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
 
     row.innerHTML = `
-      <div style="font-weight:bold;margin-bottom:6px;">${i + 1}人目</div>
+      <div style="font-weight:bold;font-size:18px;margin-bottom:8px;">
+        ${i + 1}人目 ${attended[i] ? "✅ 出席済み" : ""}
+      </div>
+
       <input 
         value="${names[i] || ""}" 
         placeholder="名前"
-        style="width:100%;padding:8px;font-size:16px;margin-bottom:6px;"
+        style="width:100%;box-sizing:border-box;padding:10px;font-size:16px;margin-bottom:8px;border-radius:8px;border:1px solid #ccc;"
       >
+
       <input 
         value="${memo1[i] || ""}" 
         placeholder="備考1：例 10,20,30"
         inputmode="decimal"
-        style="width:100%;padding:8px;font-size:15px;margin-bottom:6px;"
+        style="width:100%;box-sizing:border-box;padding:10px;font-size:15px;margin-bottom:8px;border-radius:8px;border:1px solid #ccc;"
       >
+
       <input 
         value="${memo2[i] || ""}" 
         placeholder="備考2"
-        style="width:100%;padding:8px;font-size:15px;margin-bottom:8px;"
+        style="width:100%;box-sizing:border-box;padding:10px;font-size:15px;margin-bottom:10px;border-radius:8px;border:1px solid #ccc;"
       >
-      <button style="padding:10px 20px;font-size:16px;background:#1976d2;color:white;border:none;border-radius:6px;">
+
+      <button style="width:100%;padding:12px;font-size:16px;background:#1976d2;color:white;border:none;border-radius:10px;">
         出席を記録
       </button>
     `;
