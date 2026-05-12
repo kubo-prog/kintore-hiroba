@@ -1,92 +1,82 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>筋トレ広場 出席管理</title>
-  <style>
-    body { font-family: sans-serif; background:#f8fafc; padding:20px; }
-    h1 { margin-bottom: 10px; }
-    .box { background:white; padding:15px; border-radius:10px; margin-bottom:15px; }
-    table { width:100%; border-collapse:collapse; background:white; }
-    th, td { border:1px solid #ccc; padding:8px; text-align:center; }
-    th { background:#e5e7eb; }
-    input[type="text"], input[type="number"], input[type="date"] {
-      padding:6px; width:90%;
-    }
-    button { padding:8px 12px; margin:4px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>筋トレ広場 出席管理</title>
+<style>
+body{font-family:sans-serif;background:#f8fafc;padding:20px;}
+.box{background:white;padding:15px;border-radius:10px;margin-bottom:15px;}
+table{width:100%;border-collapse:collapse;background:white;}
+th,td{border:1px solid #ccc;padding:8px;text-align:center;}
+th{background:#e5e7eb;}
+input[type="text"],input[type="date"]{padding:6px;width:90%;}
+button{padding:8px 12px;margin:4px;cursor:pointer;}
+</style>
 </head>
 <body>
-  <h1>筋トレ広場 出席管理</h1>
 
-  <div class="box">
-    <label>日付：</label>
-    <input type="date" id="date">
-    <button onclick="saveData()">保存</button>
-    <button onclick="downloadCSV()">CSV出力</button>
-  </div>
+<h1>筋トレ広場 出席管理</h1>
 
-  <div class="box">
-    <strong>出席人数：</strong>
-    <span id="count">0</span> / 20 人
-  </div>
+<div class="box">
+  日付：<input type="date" id="date">
+  <button onclick="saveData()">保存</button>
+  <button onclick="downloadCSV()">CSV出力</button>
+</div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>No</th>
-        <th>氏名</th>
-        <th>出席</th>
-        <th>数値</th>
-        <th>備考</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+<div class="box">
+  <strong>出席人数：</strong><span id="count">0</span> / 20 人
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>No</th><th>氏名</th><th>出席</th><th>数値</th><th>備考</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
 
 <script>
-const STORAGE_KEY = "kintore_hiroba_attendance";
+const SCRIPT_URL = "ここにAppsScriptのURLを貼る";
 
 document.getElementById("date").value = new Date().toISOString().split("T")[0];
 
-function makeTable() {
+function makeTable(){
   const tbody = document.getElementById("tableBody");
   tbody.innerHTML = "";
 
-  for (let i = 1; i <= 20; i++) {
+  for(let i=1; i<=20; i++){
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i}</td>
       <td><input type="text" id="name${i}" value="参加者${i}"></td>
       <td><input type="checkbox" id="present${i}" onchange="updateCount()"></td>
-      <input type="text" id="number${i}" placeholder="例：20, 30, 40">
+      <td><input type="text" id="number${i}" placeholder="例:20,30,40"></td>
       <td><input type="text" id="note${i}" placeholder="備考"></td>
     `;
     tbody.appendChild(tr);
   }
 }
 
-function updateCount() {
+function updateCount(){
   let count = 0;
-  for (let i = 1; i <= 20; i++) {
-    if (document.getElementById("present" + i).checked) count++;
+  for(let i=1; i<=20; i++){
+    if(document.getElementById("present"+i).checked) count++;
   }
   document.getElementById("count").textContent = count;
 }
 
-async function saveData() {
-
+async function saveData(){
   const rows = [];
 
-  for (let i = 1; i <= 20; i++) {
-
+  for(let i=1; i<=20; i++){
     rows.push({
       no: i,
-      name: document.getElementById("name" + i).value,
-      present: document.getElementById("present" + i).checked,
-      number: document.getElementById("number" + i).value,
-      note: document.getElementById("note" + i).value
+      name: document.getElementById("name"+i).value,
+      present: document.getElementById("present"+i).checked,
+      number: document.getElementById("number"+i).value,
+      note: document.getElementById("note"+i).value
     });
   }
 
@@ -95,56 +85,35 @@ async function saveData() {
     records: rows
   };
 
-  await fetch("https://script.google.com/macros/s/AKfycbzxPubkUojVbKnZG4jnMrPGolnHD_wUzkdcQHqODRScf2Sh3muLd3oRwBSGLmR0Xpv-/exec", {
+  await fetch(SCRIPT_URL, {
     method: "POST",
     body: JSON.stringify(payload)
   });
 
   alert("Googleスプレッドシートへ保存しました");
 }
-}
 
-function loadData() {
-  const date = document.getElementById("date").value;
-  const allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  const records = allData[date];
-
-  if (!records) return;
-
-  records.forEach((r, index) => {
-    const i = index + 1;
-    document.getElementById("name" + i).value = r.name;
-    document.getElementById("present" + i).checked = r.present;
-    document.getElementById("number" + i).value = r.number;
-    document.getElementById("note" + i).value = r.note;
-  });
-
-  updateCount();
-}
-
-function downloadCSV() {
+function downloadCSV(){
   const date = document.getElementById("date").value;
   let csv = "日付,No,氏名,出席,数値,備考\n";
 
-  for (let i = 1; i <= 20; i++) {
-    const name = document.getElementById("name" + i).value;
-    const present = document.getElementById("present" + i).checked ? "出席" : "欠席";
-    const number = document.getElementById("number" + i).value;
-    const note = document.getElementById("note" + i).value;
+  for(let i=1; i<=20; i++){
+    const name = document.getElementById("name"+i).value;
+    const present = document.getElementById("present"+i).checked ? "出席" : "欠席";
+    const number = document.getElementById("number"+i).value;
+    const note = document.getElementById("note"+i).value;
     csv += `${date},${i},${name},${present},${number},${note}\n`;
   }
 
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "筋トレ広場_出席記録_" + date + ".csv";
+  link.download = "筋トレ広場_出席記録_"+date+".csv";
   link.click();
 }
 
-document.getElementById("date").addEventListener("change", loadData);
-
 makeTable();
-loadData();
 </script>
+
 </body>
 </html>
