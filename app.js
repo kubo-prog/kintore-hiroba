@@ -10,7 +10,7 @@ function todayText() {
   return d.toLocaleDateString("ja-JP");
 }
 
-const recordDate = todayText();
+let recordDate = new Date().toISOString().split("T")[0];
 
 async function loadNames() {
   try {
@@ -76,7 +76,15 @@ function renderApp() {
       <div style="max-width:1100px;margin:0 auto;">
         <div style="background:#1976d2;color:white;padding:18px;border-radius:14px;margin-bottom:14px;">
           <h1 style="margin:0;font-size:26px;">筋トレ広場 出席管理</h1>
-          <p style="margin:8px 0 0;">日付：${recordDate}</p>
+          <div style="margin:8px 0 0;">
+  日付：
+  <input 
+    type="date"
+    id="dateInput"
+    value="${recordDate}"
+    style="padding:6px;font-size:16px;border-radius:6px;border:none;margin-left:8px;"
+  >
+</div>
           <p style="margin:4px 0 0;">本日の出席：${count} / 20人</p>
         </div>
 
@@ -98,7 +106,9 @@ function renderApp() {
     </div>
   `;
 
-  const tbody = document.getElementById("memberRows");
+  document.getElementById("dateInput").addEventListener("input", (e) => {
+  recordDate = e.target.value;
+});
 
   for (let i = 0; i < 20; i++) {
     const tr = document.createElement("tr");
