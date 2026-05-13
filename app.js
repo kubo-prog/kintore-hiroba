@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://docs.google.com/spreadsheets/d/1G196e7sdopztFEfNpLjR2BtOhwkv29FTRnKBhgjES4E/edit?gid=0#gid=0";
+const SCRIPT_URL = "https://docs.google.com/spreadsheets/d/1G196e7sdopztFEfNpLjR2BtOhwkv29FTRnKBhgjES4E/edit?gid=1016937107#gid=1016937107";
 
 let names = Array(20).fill("");
 let recordDate = new Date().toISOString().split("T")[0];
