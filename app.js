@@ -1,9 +1,6 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfyczbz2f-Sh_aMDH9WwB1OQEPIYB-PH7Shv94UL7fIi0yPs-IDqtpqvO8CGP-fYrHmtrmp/exec";
+const SCRIPT_URL = "https://kintore-hiroba.vercel.app/";
 
 let names = Array(20).fill("");
-let memo1 = Array(20).fill("");
-let memo2 = Array(20).fill("");
-let attended = Array(20).fill(false);
 let recordDate = new Date().toISOString().split("T")[0];
 
 async function loadNames() {
@@ -13,198 +10,335 @@ async function loadNames() {
 
     if (data.names && data.names.length > 0) {
       names = [...data.names];
-      while (names.length < 20) names.push("");
+
+      while (names.length < 20) {
+        names.push("");
+      }
+
       names = names.slice(0, 20);
     }
+
+  } catch (e) {
+    console.log(e);
+  }
+
+  renderApp();
+}
+
+async function saveNames() {
+  localStorage.setItem(
+    "kintore_names_v1",
+    JSON.stringify(names)
+  );
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "saveNames",
+        names: names
+      })
+    });
+
   } catch (e) {
     console.log(e);
   }
 }
 
-async function saveNames() {
-  localStorage.setItem("kintore_names_v1", JSON.stringify(names));
-
-  await fetch(SCRIPT_URL, {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify({
-      action: "saveNames",
-      names: names
-    })
-  });
-}
-
 async function saveAttendance(index) {
-  const name = names[index];
 
-  if (!name || !name.trim()) {
-    alert("名前を入力してください。");
-    return;
+  const name =
+    document.getElementById(`name-${index}`).value;
+
+  const memo1 =
+    document.getElementById(`memo1-${index}`).value;
+
+  const memo2 =
+    document.getElementById(`memo2-${index}`).value;
+
+  try {
+
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "saveRecord",
+        date: recordDate,
+        no: index + 1,
+        name: name,
+        attendance: "出席",
+        memo1: memo1,
+        memo2: memo2
+      })
+    });
+
+    alert("出席を記録しました");
+
+  } catch (e) {
+
+    alert("保存失敗");
+
   }
-
-  await fetch(SCRIPT_URL, {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify({
-      action: "saveRecord",
-      date: recordDate,
-      name: name,
-      attendance: "出席",
-      memo1: memo1[index],
-      memo2: memo2[index]
-    })
-  });
-
-  attended[index] = true;
-  memo1[index] = "";
-  memo2[index] = "";
-  renderApp();
-
-  alert(`${name} さんの出席を記録しました。`);
 }
 
 function downloadCSV() {
-  let csv = "\uFEFF日付,No,名前,備考1,備考2,出席\n";
+
+  let csv =
+    "日付,No,氏名,数値,備考,出席\n";
 
   for (let i = 0; i < 20; i++) {
-    csv += `${recordDate},${i + 1},"${names[i]}","${memo1[i]}","${memo2[i]}","${attended[i] ? "出席" : ""}"\n`;
+
+    const name =
+      document.getElementById(`name-${i}`).value;
+
+    const memo1 =
+      document.getElementById(`memo1-${i}`).value;
+
+    const memo2 =
+      document.getElementById(`memo2-${i}`).value;
+
+    csv +=
+      `${recordDate},${i + 1},${name},${memo1},${memo2},出席\n`;
   }
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const blob = new Blob(
+    [csv],
+    { type: "text/csv" }
+  );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const a =
+    document.createElement("a");
+
   a.href = url;
-  a.download = `kintore_${recordDate}.csv`;
+
+  a.download =
+    `attendance_${recordDate}.csv`;
+
   a.click();
+
   URL.revokeObjectURL(url);
 }
 
 function renderApp() {
-  const count = attended.filter(Boolean).length;
-  const app = document.getElementById("app");
 
-  app.innerHTML = `
-    <div style="font-family:sans-serif;background:#f5f7fb;min-height:100vh;padding:16px;">
-      <div style="max-width:1200px;margin:0 auto;">
-        <div style="background:#1976d2;color:white;padding:18px;border-radius:14px;margin-bottom:14px;">
-          <h1 style="margin:0;font-size:26px;">筋トレ広場 出席管理</h1>
-
-          <div style="margin-top:10px;">
-            日付：
-            <input 
-              type="date"
-              id="dateInput"
-              value="${recordDate}"
-              style="padding:6px;font-size:16px;border-radius:6px;border:none;margin-left:8px;"
-            >
-          </div>
-
-          <p style="margin:8px 0 0;">本日の出席：${count} / 20人</p>
-        </div>
-
-        <div style="margin-bottom:12px;">
-          <button id="csvBtn" style="padding:10px 16px;background:#555;color:white;border:none;border-radius:8px;font-size:15px;">
-            CSV出力
-          </button>
-        </div>
-
-        <div style="overflow-x:auto;background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:10px;">
-          <table style="width:100%;border-collapse:collapse;min-width:850px;">
-            <thead>
-              <tr style="background:#eeeeee;">
-                <th style="padding:10px;border:1px solid #ddd;width:50px;">No.</th>
-                <th style="padding:10px;border:1px solid #ddd;width:260px;">名前</th>
-                <th style="padding:10px;border:1px solid #ddd;">備考1 数値</th>
-                <th style="padding:10px;border:1px solid #ddd;">備考2</th>
-                <th style="padding:10px;border:1px solid #ddd;width:130px;">出席</th>
-              </tr>
-            </thead>
-            <tbody id="memberRows"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("dateInput").addEventListener("input", (e) => {
-    recordDate = e.target.value;
-  });
-
-  document.getElementById("csvBtn").addEventListener("click", downloadCSV);
-
-  const tbody = document.getElementById("memberRows");
+  let rows = "";
 
   for (let i = 0; i < 20; i++) {
-    const tr = document.createElement("tr");
-    tr.style.background = attended[i] ? "#e8f5e9" : "white";
 
-    tr.innerHTML = `
-      <td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;">${i + 1}</td>
+    rows += `
+      <tr>
 
-      <td style="padding:8px;border:1px solid #ddd;">
-        <input 
-          value="${names[i] || ""}" 
-          placeholder="名前"
-          style="width:100%;box-sizing:border-box;padding:9px;font-size:15px;border-radius:6px;border:1px solid #ccc;"
-        >
-      </td>
+        <td style="
+          padding:8px;
+          border:1px solid #ddd;
+          text-align:center;
+        ">
+          ${i + 1}
+        </td>
 
-      <td style="padding:8px;border:1px solid #ddd;">
-        <input 
-          value="${memo1[i] || ""}" 
-          placeholder="例 10,20,30"
-          inputmode="decimal"
-          style="width:100%;box-sizing:border-box;padding:9px;font-size:15px;border-radius:6px;border:1px solid #ccc;"
-        >
-      </td>
+        <td style="
+          padding:8px;
+          border:1px solid #ddd;
+        ">
+          <input
+            id="name-${i}"
+            value="${names[i] || ""}"
+            style="
+              width:95%;
+              padding:8px;
+            "
+            onchange="
+              names[${i}] = this.value;
+              saveNames();
+            "
+          />
+        </td>
 
-      <td style="padding:8px;border:1px solid #ddd;">
-        <input 
-          value="${memo2[i] || ""}" 
-          placeholder="備考2"
-          style="width:100%;box-sizing:border-box;padding:9px;font-size:15px;border-radius:6px;border:1px solid #ccc;"
-        >
-      </td>
+        <td style="
+          padding:8px;
+          border:1px solid #ddd;
+        ">
+          <input
+            id="memo1-${i}"
+            placeholder="例 10,20,30"
+            style="
+              width:95%;
+              padding:8px;
+            "
+          />
+        </td>
 
-      <td style="padding:8px;border:1px solid #ddd;text-align:center;">
-        <button style="padding:10px 16px;font-size:15px;background:${attended[i] ? "#2e7d32" : "#1976d2"};color:white;border:none;border-radius:8px;">
-          ${attended[i] ? "出席済み" : "出席"}
-        </button>
-      </td>
+        <td style="
+          padding:8px;
+          border:1px solid #ddd;
+        ">
+          <input
+            id="memo2-${i}"
+            placeholder="備考"
+            style="
+              width:95%;
+              padding:8px;
+            "
+          />
+        </td>
+
+        <td style="
+          padding:8px;
+          border:1px solid #ddd;
+          text-align:center;
+        ">
+          <button
+            onclick="saveAttendance(${i})"
+            style="
+              background:#1976d2;
+              color:white;
+              border:none;
+              padding:10px 18px;
+              border-radius:8px;
+              cursor:pointer;
+            "
+          >
+            出席
+          </button>
+        </td>
+
+      </tr>
     `;
-
-    const inputs = tr.querySelectorAll("input");
-    const button = tr.querySelector("button");
-
-    inputs[0].addEventListener("input", (e) => {
-      names[i] = e.target.value;
-      localStorage.setItem("kintore_names_v1", JSON.stringify(names));
-    });
-
-    inputs[0].addEventListener("blur", saveNames);
-
-    inputs[1].addEventListener("input", (e) => {
-      memo1[i] = e.target.value.replace(/，/g, ",");
-    });
-
-    inputs[2].addEventListener("input", (e) => {
-      memo2[i] = e.target.value;
-    });
-
-    button.addEventListener("click", () => saveAttendance(i));
-
-    tbody.appendChild(tr);
   }
+
+  document.getElementById("app").innerHTML = `
+
+    <div style="
+      max-width:1100px;
+      margin:auto;
+      padding:20px;
+      font-family:sans-serif;
+    ">
+
+      <div style="
+        background:#1976d2;
+        color:white;
+        padding:20px;
+        border-radius:14px;
+        margin-bottom:20px;
+      ">
+
+        <h1>筋トレ広場 出席管理</h1>
+
+        <div style="
+          margin-top:12px;
+        ">
+          日付：
+
+          <input
+            type="date"
+            value="${recordDate}"
+            onchange="
+              recordDate=this.value
+            "
+            style="
+              padding:6px;
+              font-size:16px;
+            "
+          />
+        </div>
+
+      </div>
+
+      <button
+        onclick="downloadCSV()"
+        style="
+          background:#555;
+          color:white;
+          border:none;
+          padding:10px 16px;
+          border-radius:8px;
+          margin-bottom:12px;
+          cursor:pointer;
+        "
+      >
+        CSV出力
+      </button>
+
+      <div style="
+        overflow-x:auto;
+        background:white;
+        border-radius:14px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.08);
+      ">
+
+        <table style="
+          width:100%;
+          border-collapse:collapse;
+        ">
+
+          <thead style="
+            background:#f0f0f0;
+          ">
+
+            <tr>
+
+              <th style="
+                padding:10px;
+                border:1px solid #ddd;
+              ">
+                No.
+              </th>
+
+              <th style="
+                padding:10px;
+                border:1px solid #ddd;
+              ">
+                名前
+              </th>
+
+              <th style="
+                padding:10px;
+                border:1px solid #ddd;
+              ">
+                備考1 数値
+              </th>
+
+              <th style="
+                padding:10px;
+                border:1px solid #ddd;
+              ">
+                備考2
+              </th>
+
+              <th style="
+                padding:10px;
+                border:1px solid #ddd;
+              ">
+                出席
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            ${rows}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+  `;
 }
 
-async function startApp() {
-  const saved = localStorage.getItem("kintore_names_v1");
-  if (saved) {
-    names = JSON.parse(saved);
-  }
+function startApp() {
 
-  await loadNames();
-  renderApp();
+  document.body.innerHTML =
+    `<div id="app"></div>`;
+
+  loadNames();
 }
 
 startApp();
