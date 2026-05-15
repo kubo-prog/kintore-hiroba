@@ -1,4 +1,4 @@
-const SCRIPT_URL = "ここにApps ScriptのデプロイURL";
+const SCRIPT_URL = "https://script.google.com/a/macros/hiu.ac.jp/s/AKfycbz5pA6RN8L54a3cAVqTenPgpYqqNjYJ4jFF2HeOg6zVVi7dT4N0YV_8njgGUKHqzM4_/exec";
 
 let names = Array(20).fill("");
 let memo1 = Array(20).fill("");
