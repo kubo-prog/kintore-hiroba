@@ -25,6 +25,7 @@ async function saveNames() {
   try {
     await fetch(SCRIPT_URL, {
       method: "POST",
+      mode: "no-cors",
       body: JSON.stringify({
         action: "saveNames",
         names: names
@@ -48,6 +49,7 @@ async function saveAttendance(index) {
   try {
     await fetch(SCRIPT_URL, {
       method: "POST",
+      mode: "no-cors",
       body: JSON.stringify({
         action: "saveRecord",
         date: recordDate,
@@ -79,6 +81,7 @@ async function saveAttendance(index) {
 function updateAttendanceDisplay() {
   const count = attended.filter(Boolean).length;
   const countEl = document.getElementById("attendanceCount");
+
   if (countEl) {
     countEl.textContent = `本日の出席：${count} / 20人`;
   }
